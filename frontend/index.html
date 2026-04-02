@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI LinkedIn Enhancement Tool</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Google Fonts for professional look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <!-- ============ HEADER ============ -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fab fa-linkedin"></i>
+                <h1>LinkedIn<span>Enhancer</span> AI</h1>
+            </div>
+            <p class="tagline">Optimize your LinkedIn profile with AI-powered insights</p>
+        </div>
+    </header>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="main-container">
+
+        <!-- ===== TAB NAVIGATION ===== -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="profile-input">
+                <i class="fas fa-user-edit"></i> Profile Input
+            </button>
+            <button class="tab-btn" data-tab="analysis-results">
+                <i class="fas fa-chart-bar"></i> Analysis
+            </button>
+            <button class="tab-btn" data-tab="rewrite-section">
+                <i class="fas fa-magic"></i> Rewrite
+            </button>
+            <button class="tab-btn" data-tab="chatbot">
+                <i class="fas fa-robot"></i> AI Chatbot
+            </button>
+        </nav>
+
+        <!-- ===== TAB 1: PROFILE INPUT ===== -->
+        <section id="profile-input" class="tab-content active">
+            <div class="section-header">
+                <h2><i class="fas fa-user-edit"></i> Enter Your LinkedIn Profile</h2>
+                <p>Fill in your profile details or load a sample profile to get started.</p>
+            </div>
+
+            <div class="input-actions">
+                <button id="load-sample-btn" class="btn btn-secondary">
+                    <i class="fas fa-file-import"></i> Load Sample Profile
+                </button>
+                <button id="clear-form-btn" class="btn btn-outline">
+                    <i class="fas fa-eraser"></i> Clear Form
+                </button>
+            </div>
+
+            <form id="profile-form" class="profile-form">
+                <!-- Name -->
+                <div class="form-group">
+                    <label for="name">
+                        <i class="fas fa-user"></i> Full Name *
+                    </label>
+                    <input type="text" id="name" name="name" 
+                           placeholder="e.g., John Doe" required>
+                </div>
+
+                <!-- Headline -->
+                <div class="form-group">
+                    <label for="headline">
+                        <i class="fas fa-heading"></i> Headline *
+                        <span class="char-count" id="headline-count">0/220</span>
+                    </label>
+                    <input type="text" id="headline" name="headline" 
+                           placeholder="e.g., Software Engineer | Building Scalable Systems | Python & AWS"
+                           maxlength="220" required>
+                    <small>Your headline is the most visible part — make it count!</small>
+                </div>
+
+                <!-- Summary -->
+                <div class="form-group">
+                    <label for="summary">
+                        <i class="fas fa-align-left"></i> Summary / About
+                        <span class="char-count" id="summary-count">0/2600</span>
+                    </label>
+                    <textarea id="summary" name="summary" rows="6"
+                              placeholder="Tell your professional story. What drives you? What have you achieved? What are you looking for?"
+                              maxlength="2600"></textarea>
+                    <small>First 3 lines are visible before "see more" — make them compelling!</small>
+                </div>
+
+                <!-- Industry & Target Role -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="industry">
+                            <i class="fas fa-industry"></i> Industry
+                        </label>
+                        <input type="text" id="industry" name="industry"
+                               placeholder="e.g., Technology, Finance, Healthcare">
+                    </div>
+                    <div class="form-group">
+                        <label for="target_role">
+                            <i class="fas fa-bullseye"></i> Target Role
+                        </label>
+                        <input type="text" id="target_role" name="target_role"
+                               placeholder="e.g., Senior Software Engineer">
+                    </div>
+                </div>
+
+                <!-- Experience -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-briefcase"></i> Experience
+                        <button type="button" id="add-experience-btn" class="btn-small">
+                            <i class="fas fa-plus"></i> Add Position
+                        </button>
+                    </label>
+                    <div id="experience-container">
+                        <!-- Experience entries will be added here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <div class="form-group">
+                    <label for="skills">
+                        <i class="fas fa-tools"></i> Skills
+                    </label>
+                    <input type="text" id="skills" name="skills"
+                           placeholder="Enter skills separated by commas (e.g., Python, JavaScript, AWS, Leadership)">
+                    <small>LinkedIn allows up to 50 skills. List your most important ones.</small>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="analyze-btn" class="btn btn-primary btn-large">
+                    <i class="fas fa-microscope"></i> Analyze My Profile
+                </button>
+            </form>
+        </section>
+
+        <!-- ===== TAB 2: ANALYSIS RESULTS ===== -->
+        <section id="analysis-results" class="tab-content">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-bar"></i> Profile Analysis</h2>
+                <p>Here's how your LinkedIn profile scores — and how to improve it.</p>
+            </div>
+
+            <!-- Overall Score -->
+            <div id="overall-score-container" class="score-overview">
+                <!-- Filled dynamically -->
+            </div>
+
+            <!-- Section Scores -->
+            <div id="section-scores-container" class="section-scores-grid">
+                <!-- Filled dynamically -->
+            </div>
+
+            <!-- Priority Actions -->
+            <div id="priorities-container" class="priorities-box">
+                <!-- Filled dynamically -->
+            </div>
+
+            <!-- No analysis placeholder -->
+            <div id="no-analysis" class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>No Analysis Yet</h3>
+                <p>Go to the Profile Input tab and submit your profile to see results.</p>
+            </div>
+        </section>
+
+        <!-- ===== TAB 3: REWRITE SECTION ===== -->
+        <section id="rewrite-section" class="tab-content">
+            <div class="section-header">
+                <h2><i class="fas fa-magic"></i> AI Section Rewriter</h2>
+                <p>Select a section and get AI-generated improved versions.</p>
+            </div>
+
+            <div class="rewrite-controls">
+                <div class="form-group">
+                    <label for="rewrite-select">Section to Rewrite</label>
+                    <select id="rewrite-select">
+                        <option value="headline">Headline</option>
+                        <option value="summary">Summary / About</option>
+                        <option value="experience">Experience Description</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rewrite-current">Current Content</label>
+                    <textarea id="rewrite-current" rows="4"
+                              placeholder="Paste the content you want to improve..."></textarea>
+                </div>
+
+                <button id="rewrite-btn" class="btn btn-primary">
+                    <i class="fas fa-wand-magic-sparkles"></i> Generate Rewrites
+                </button>
+            </div>
+
+            <!-- Rewrite Results -->
+            <div id="rewrite-results" class="rewrite-results">
+                <!-- Filled dynamically -->
+            </div>
+        </section>
+
+        <!-- ===== TAB 4: CHATBOT ===== -->
+        <section id="chatbot" class="tab-content">
+            <div class="section-header">
+                <h2><i class="fas fa-robot"></i> LinkedInPro AI Chatbot</h2>
+                <p>Ask me anything about optimizing your LinkedIn profile!</p>
+            </div>
+
+            <div class="chat-container">
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="chat-messages">
+                    <div class="chat-message bot">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p>👋 Hi! I'm <strong>LinkedInPro AI</strong>, your personal LinkedIn optimization assistant.</p>
+                            <p>I can help you with:</p>
+                            <ul>
+                                <li>✍️ Improving your headline & summary</li>
+                                <li>📝 Rewriting experience descriptions</li>
+                                <li>🎯 Suggesting relevant skills</li>
+                                <li>🔍 Keyword optimization tips</li>
+                                <li>💡 General LinkedIn best practices</li>
+                            </ul>
+                            <p>Try asking: <em>"How can I improve my headline?"</em></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Suggestions -->
+                <div class="quick-suggestions">
+                    <button class="suggestion-chip" data-msg="Improve my headline">
+                        ✍️ Improve my headline
+                    </button>
+                    <button class="suggestion-chip" data-msg="Rewrite my summary to be more engaging">
+                        📝 Rewrite my summary
+                    </button>
+                    <button class="suggestion-chip" data-msg="What skills should I add for a senior developer role?">
+                        🎯 Suggest skills
+                    </button>
+                    <button class="suggestion-chip" data-msg="How do I make my profile more visible to recruiters?">
+                        🔍 Recruiter visibility
+                    </button>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <textarea id="chat-input" rows="1" 
+                              placeholder="Type your question about LinkedIn optimization..."
+                              maxlength="1000"></textarea>
+                    <button id="chat-send-btn" class="btn-chat-send">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+
+                <div class="chat-actions">
+                    <button id="clear-chat-btn" class="btn btn-outline btn-small-action">
+                        <i class="fas fa-trash"></i> Clear Chat
+                    </button>
+                    <span class="chat-note">
+                        <i class="fas fa-info-circle"></i> 
+                        Profile data is used for personalized advice when available.
+                    </span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============ LOADING OVERLAY ============ -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p id="loading-text">Analyzing your profile...</p>
+        </div>
+    </div>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <p>AI LinkedIn Enhancement Tool — Built with Flask, Gemini AI & ❤️</p>
+        <p class="footer-note">This is a demonstration project. Not affiliated with LinkedIn.</p>
+    </footer>
+
+    <!-- ============ SCRIPTS ============ -->
+    <script src="js/app.js"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/chat.js"></script>
+
+</body>
+</html>
