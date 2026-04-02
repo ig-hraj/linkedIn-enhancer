@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: linkedin-enhancer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gemini-flash-lite-latest
+      - key: LINKEDIN_FETCH_MODE
+        value: manual_only
