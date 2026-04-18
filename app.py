@@ -20,8 +20,15 @@ from bs4 import BeautifulSoup
 # App Initialization
 # ============================================================
 
-# Validate configuration before starting
-Config.validate()
+# Validate configuration before starting, but do not hard-crash the process.
+# Render should keep the web worker alive even when the AI key is missing so
+# the app can still show a clear runtime error instead of a startup failure.
+try:
+    Config.validate()
+    config_error = None
+except Exception as exc:
+    config_error = str(exc)
+    print(f"⚠️  Configuration warning: {config_error}")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
@@ -31,8 +38,21 @@ app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 CORS(app)  # Enable CORS for frontend-backend communication
 
 # Initialize services
-ai_service = AIService()
+try:
+    ai_service = AIService()
+except Exception as exc:
+    ai_service = None
+    print(f"⚠️  AI service disabled: {exc}")
 analyzer = ProfileAnalyzer()
+
+
+def _require_ai_service():
+    if ai_service is None:
+        return jsonify({
+            "success": False,
+            "error": "AI service is unavailable. Check GEMINI_API_KEY and deployment env vars."
+        }), 503
+    return None
 
 
 def _build_empty_profile():
@@ -171,6 +191,10 @@ def analyze_profile():
     
     Returns JSON with analysis scores and suggestions.
     """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
     # Get profile data from request
     profile_data = request.get_json()
     
@@ -241,6 +265,10 @@ def rewrite_section():
     
     Returns 3 rewritten versions with different styles.
     """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
     data = request.get_json()
     
     if not data:
@@ -286,6 +314,10 @@ def chat():
     
     Returns AI response maintaining conversation context.
     """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
     data = request.get_json()
     
     if not data or not data.get("message"):
