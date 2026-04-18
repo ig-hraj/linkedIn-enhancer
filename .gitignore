@@ -29,3 +29,7 @@ Thumbs.db
 *.log
 instance/
 .webassets-cache
+
+# Debug scripts
+quick_test.py
+list_models.py
