@@ -14,7 +14,10 @@ from prompts import (
     PROFILE_ANALYSIS_PROMPT,
     SECTION_REWRITE_PROMPT,
     SECTION_GUIDELINES,
-    CHAT_WITH_PROFILE_CONTEXT
+    CHAT_WITH_PROFILE_CONTEXT,
+    CONTENT_ANALYSIS_PROMPT,
+    COMMENT_SUGGESTION_PROMPT,
+    POST_SUMMARY_PROMPT
 )
 
 
@@ -285,3 +288,97 @@ class AIService:
             del self.conversations[session_id]
             return True
         return False
+
+    def analyze_content(self, content: str, author_info: dict,
+                        content_type: str = "post") -> dict:
+        """
+        Analyze tone, intent, and audience of LinkedIn content.
+
+        Args:
+            content: The text content to analyze
+            author_info: Information about the content author
+            content_type: Type of content (post, article, comment)
+
+        Returns:
+            Dictionary with tone, intent, audience analysis
+        """
+        prompt = CONTENT_ANALYSIS_PROMPT.format(
+            content=content,
+            author_info=json.dumps(author_info) if author_info else "Not available",
+            content_type=content_type
+        )
+
+        try:
+            response = self.model.generate_content(prompt)
+            response_text = self._clean_json_response(response.text.strip())
+            analysis = json.loads(response_text)
+            return {"success": True, "analysis": analysis}
+        except json.JSONDecodeError:
+            return {
+                "success": False,
+                "error": "Failed to parse content analysis. Please try again."
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Content analysis error: {str(e)}"
+            }
+
+    def generate_comments(self, post_content: str, analysis: dict,
+                          user_profile: dict = None) -> dict:
+        """
+        Generate contextual comment suggestions for a LinkedIn post.
+
+        Args:
+            post_content: The post text to generate comments for
+            analysis: Content analysis results (tone, intent, etc.)
+            user_profile: Optional commenter profile for personalization
+
+        Returns:
+            Dictionary with 4 comment suggestions in different styles
+        """
+        prompt = COMMENT_SUGGESTION_PROMPT.format(
+            post_content=post_content,
+            tone=analysis.get("tone", {}).get("primary", "unknown"),
+            intent=analysis.get("intent", {}).get("primary", "unknown"),
+            topics=", ".join(analysis.get("key_topics", ["general"])),
+            user_context=json.dumps(user_profile) if user_profile else "Not provided"
+        )
+
+        try:
+            response = self.model.generate_content(prompt)
+            response_text = self._clean_json_response(response.text.strip())
+            comments = json.loads(response_text)
+            return {"success": True, "suggestions": comments}
+        except json.JSONDecodeError:
+            return {
+                "success": False,
+                "error": "Failed to parse comment suggestions. Please try again."
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Comment generation error: {str(e)}"
+            }
+
+    def summarize_post(self, post_content: str) -> dict:
+        """
+        Generate a quick 2-sentence summary of a LinkedIn post.
+
+        Args:
+            post_content: The post text to summarize
+
+        Returns:
+            Dictionary with the summary text
+        """
+        prompt = POST_SUMMARY_PROMPT.format(post_content=post_content)
+
+        try:
+            response = self.model.generate_content(prompt)
+            summary = response.text.strip()
+            return {"success": True, "summary": summary}
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Summarization error: {str(e)}"
+            }

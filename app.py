@@ -516,7 +516,189 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "service": "LinkedIn Enhancement Tool API",
-        "version": "1.0.0"
+        "version": "2.0.0",
+        "features": ["analyze", "rewrite", "chat", "content-analysis",
+                      "comment-suggestions", "auto-extract"]
+    })
+
+
+@app.route("/api/analyze-content", methods=["POST"])
+def analyze_content():
+    """
+    Analyze tone, intent, and audience of LinkedIn content.
+
+    Expects JSON body:
+    {
+        "content": "The post or article text...",
+        "author_info": { "name": "...", "headline": "..." },
+        "content_type": "post"  // post, article, comment
+    }
+
+    Returns tone, intent, audience, engagement potential, and key topics.
+    """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
+    data = request.get_json()
+    if not data or not data.get("content"):
+        return jsonify({
+            "success": False,
+            "error": "Content text is required."
+        }), 400
+
+    content = data["content"]
+    author_info = data.get("author_info", {})
+    content_type = data.get("content_type", "post")
+
+    result = ai_service.analyze_content(content, author_info, content_type)
+    return jsonify(result)
+
+
+@app.route("/api/suggest-comments", methods=["POST"])
+def suggest_comments():
+    """
+    Generate contextual comment suggestions for a LinkedIn post.
+
+    Expects JSON body:
+    {
+        "post_content": "The post text...",
+        "analysis": { ... },  // optional — content analysis results
+        "user_profile": { ... }  // optional — commenter's profile
+    }
+
+    Returns 4 comment suggestions in different styles.
+    """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
+    data = request.get_json()
+    if not data or not data.get("post_content"):
+        return jsonify({
+            "success": False,
+            "error": "post_content is required."
+        }), 400
+
+    post_content = data["post_content"]
+    analysis = data.get("analysis", {})
+    user_profile = data.get("user_profile", {})
+
+    # If no analysis provided, run content analysis first
+    if not analysis:
+        analysis_result = ai_service.analyze_content(
+            post_content,
+            data.get("author_info", {}),
+            "post"
+        )
+        if analysis_result["success"]:
+            analysis = analysis_result["analysis"]
+
+    result = ai_service.generate_comments(post_content, analysis, user_profile)
+    return jsonify(result)
+
+
+@app.route("/api/quick-comment", methods=["POST"])
+def quick_comment():
+    """
+    Convenience endpoint: analyze post + generate comments in one call.
+
+    Expects JSON body:
+    {
+        "post_content": "The post text...",
+        "author_info": { ... },  // optional
+        "user_profile": { ... }  // optional
+    }
+
+    Returns both analysis and comment suggestions.
+    """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
+    data = request.get_json()
+    if not data or not data.get("post_content"):
+        return jsonify({
+            "success": False,
+            "error": "post_content is required."
+        }), 400
+
+    post_content = data["post_content"]
+    author_info = data.get("author_info", {})
+    user_profile = data.get("user_profile", {})
+
+    # Step 1: Analyze content
+    analysis_result = ai_service.analyze_content(post_content, author_info, "post")
+    analysis = {}
+    if analysis_result["success"]:
+        analysis = analysis_result["analysis"]
+
+    # Step 2: Generate comments using analysis
+    comments_result = ai_service.generate_comments(
+        post_content, analysis, user_profile
+    )
+
+    return jsonify({
+        "success": comments_result.get("success", False),
+        "analysis": analysis,
+        "suggestions": comments_result.get("suggestions", {}),
+        "error": comments_result.get("error")
+    })
+
+
+@app.route("/api/auto-extract-analyze", methods=["POST"])
+def auto_extract_analyze():
+    """
+    Receive auto-extracted profile data from the extension and analyze.
+    Bypasses the manual form — data comes from content scripts.
+
+    Expects JSON body:
+    {
+        "profile_data": {
+            "name": "...",
+            "headline": "...",
+            "summary": "...",
+            "experience": [...],
+            "skills": [...]
+        }
+    }
+    """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
+    data = request.get_json()
+    if not data or not data.get("profile_data"):
+        return jsonify({
+            "success": False,
+            "error": "profile_data is required."
+        }), 400
+
+    profile_data = data["profile_data"]
+
+    # Fill missing fields with defaults
+    for key in ["name", "headline", "summary", "industry", "target_role"]:
+        profile_data.setdefault(key, "")
+    profile_data.setdefault("experience", [])
+    profile_data.setdefault("skills", [])
+
+    # Require at least some content to analyze
+    if not any([profile_data["name"], profile_data["headline"],
+                profile_data["summary"]]):
+        return jsonify({
+            "success": False,
+            "error": "Extracted profile is empty — could not find name, headline, or summary."
+        }), 422
+
+    completeness = analyzer.quick_completeness_score(profile_data)
+    ai_analysis = ai_service.analyze_profile(profile_data)
+
+    return jsonify({
+        "success": ai_analysis["success"],
+        "completeness": completeness,
+        "analysis": ai_analysis.get("analysis"),
+        "auto_extracted": True,
+        "error": ai_analysis.get("error")
     })
 
 

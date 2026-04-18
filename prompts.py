@@ -224,3 +224,123 @@ PROFILE DATA:
 
 Use this data to provide PERSONALIZED advice. Reference their specific content when making suggestions. Don't give generic advice — tailor everything to THIS profile.
 """
+
+
+# ============================================================
+# CONTENT ANALYSIS PROMPT: Tone, intent, audience detection
+# ============================================================
+CONTENT_ANALYSIS_PROMPT = """You are an expert social media content analyst specializing in LinkedIn.
+
+Analyze the following LinkedIn {content_type} and provide a detailed breakdown.
+
+CONTENT:
+\"\"\"{content}\"\"\"
+
+AUTHOR CONTEXT (if available):
+{author_info}
+
+Analyze and return the following:
+
+1. **TONE** — The dominant emotional/stylistic tone of the content
+2. **INTENT** — What the author is trying to achieve
+3. **AUDIENCE** — Who this content is primarily targeting
+4. **ENGAGEMENT POTENTIAL** — How likely this is to generate engagement (1-10)
+5. **KEY TOPICS** — Main subjects/themes discussed
+6. **SENTIMENT** — Overall positive, negative, neutral, or mixed
+
+RESPOND IN THIS EXACT JSON FORMAT:
+{{
+  "tone": {{
+    "primary": "<formal|casual|humorous|inspirational|analytical|aggressive|empathetic|storytelling>",
+    "secondary": "<optional secondary tone or null>",
+    "confidence": <0.0-1.0>
+  }},
+  "intent": {{
+    "primary": "<promotion|educational|personal_story|networking|job_seeking|thought_leadership|celebration|asking_advice|sharing_news|hiring>",
+    "description": "<one sentence describing the specific intent>"
+  }},
+  "audience": {{
+    "primary": "<recruiters|peers|general|industry_specific|job_seekers|entrepreneurs|students>",
+    "industry": "<detected industry or 'general'>",
+    "seniority_level": "<entry|mid|senior|executive|all>"
+  }},
+  "engagement_potential": <number 1-10>,
+  "key_topics": ["<topic1>", "<topic2>", "<topic3>"],
+  "sentiment": "<positive|negative|neutral|mixed>",
+  "content_summary": "<1-2 sentence summary of the content>"
+}}
+
+IMPORTANT: Return ONLY valid JSON. No markdown code blocks, no extra text."""
+
+
+# ============================================================
+# COMMENT SUGGESTION PROMPT: Generate contextual comments
+# ============================================================
+COMMENT_SUGGESTION_PROMPT = """You are a LinkedIn engagement expert. Generate smart, contextual comment suggestions for the following LinkedIn post.
+
+POST CONTENT:
+\"\"\"{post_content}\"\"\"
+
+POST ANALYSIS:
+- Tone: {tone}
+- Intent: {intent}
+- Key Topics: {topics}
+
+COMMENTER'S PROFILE (for personalization):
+{user_context}
+
+Generate exactly 4 comment suggestions, each with a different style:
+
+RULES:
+1. Each comment MUST reference specific details from the post (not generic)
+2. Comments should feel natural and human-written — NOT robotic or sycophantic
+3. Length: 40-200 characters each (optimal for LinkedIn engagement)
+4. Use emojis sparingly and appropriately (max 1-2 per comment)
+5. Do NOT start any comment with "Great post" or "Thanks for sharing" — be more original
+6. If the post tone is formal, keep witty comments respectful
+7. If the commenter has relevant expertise, reference it naturally
+
+RESPOND IN THIS EXACT JSON FORMAT:
+{{
+  "comments": [
+    {{
+      "style": "professional",
+      "label": "🤝 Professional",
+      "comment": "<a thoughtful, value-adding comment that demonstrates expertise>",
+      "why": "<brief explanation of why this comment works>"
+    }},
+    {{
+      "style": "engaging",
+      "label": "💡 Engaging",
+      "comment": "<a comment that asks a question or sparks further discussion>",
+      "why": "<brief explanation>"
+    }},
+    {{
+      "style": "witty",
+      "label": "😄 Witty",
+      "comment": "<a clever or lightly humorous comment, appropriate to the tone>",
+      "why": "<brief explanation>"
+    }},
+    {{
+      "style": "supportive",
+      "label": "❤️ Supportive",
+      "comment": "<an encouraging, celebratory, or empathetic comment>",
+      "why": "<brief explanation>"
+    }}
+  ],
+  "engagement_tip": "<one tip for maximizing engagement on this type of post>"
+}}
+
+IMPORTANT: Return ONLY valid JSON. No markdown code blocks, no extra text."""
+
+
+# ============================================================
+# POST SUMMARY PROMPT: Quick summarization
+# ============================================================
+POST_SUMMARY_PROMPT = """Summarize the following LinkedIn post in exactly 2 sentences. 
+Capture the key message and any call-to-action.
+
+POST:
+\"\"\"{post_content}\"\"\"
+
+Return ONLY the 2-sentence summary, no JSON, no formatting."""
