@@ -17,7 +17,11 @@ from prompts import (
     CHAT_WITH_PROFILE_CONTEXT,
     CONTENT_ANALYSIS_PROMPT,
     COMMENT_SUGGESTION_PROMPT,
-    POST_SUMMARY_PROMPT
+    POST_SUMMARY_PROMPT,
+    EXTENSION_CHAT_SYSTEM,
+    EXTENSION_CHAT_CONTEXT_PROFILE,
+    EXTENSION_CHAT_CONTEXT_POST,
+    EXTENSION_CHAT_CONTEXT_NONE
 )
 
 
@@ -382,3 +386,130 @@ class AIService:
                 "success": False,
                 "error": f"Summarization error: {str(e)}"
             }
+
+    # In-memory chat history store: { session_id: [messages] }
+    _chat_sessions = {}
+
+    def chat_with_context(self, message: str, context: dict,
+                          session_id: str = "default",
+                          history: list = None) -> dict:
+        """
+        Context-aware conversational chat for the extension chatbot.
+
+        Args:
+            message: User's natural language message
+            context: Page context dict with 'type' and 'data' keys
+            session_id: Session identifier for history tracking
+            history: Optional chat history list of {role, content} dicts
+
+        Returns:
+            Dictionary with the AI response text
+        """
+        # Build context block based on page type
+        context_type = context.get("type", "none")
+        context_data = context.get("data", {})
+
+        if context_type == "profile" and context_data:
+            exp_text = ""
+            if isinstance(context_data.get("experience"), list):
+                exp_items = []
+                for e in context_data["experience"][:5]:
+                    if isinstance(e, dict):
+                        exp_items.append(f"{e.get('title', '')} at {e.get('company', '')}")
+                    else:
+                        exp_items.append(str(e))
+                exp_text = "; ".join(exp_items) if exp_items else "Not available"
+            else:
+                exp_text = str(context_data.get("experience", "Not available"))
+
+            skills_text = ""
+            if isinstance(context_data.get("skills"), list):
+                skills_text = ", ".join(context_data["skills"][:15])
+            else:
+                skills_text = str(context_data.get("skills", "Not available"))
+
+            edu_text = ""
+            if isinstance(context_data.get("education"), list):
+                edu_items = []
+                for e in context_data["education"][:3]:
+                    if isinstance(e, dict):
+                        edu_items.append(f"{e.get('school', '')} — {e.get('degree', '')}")
+                    else:
+                        edu_items.append(str(e))
+                edu_text = "; ".join(edu_items) if edu_items else "Not available"
+            else:
+                edu_text = str(context_data.get("education", "Not available"))
+
+            context_block = EXTENSION_CHAT_CONTEXT_PROFILE.format(
+                name=context_data.get("name", "Unknown"),
+                headline=context_data.get("headline", "Not available"),
+                summary=context_data.get("summary", "Not available"),
+                location=context_data.get("location", "Not available"),
+                experience=exp_text,
+                skills=skills_text,
+                education=edu_text
+            )
+        elif context_type == "post" and context_data:
+            engagement = context_data.get("engagement", {})
+            eng_text = f"{engagement.get('likes', '?')} likes, {engagement.get('comments', '?')} comments" if isinstance(engagement, dict) else str(engagement)
+
+            context_block = EXTENSION_CHAT_CONTEXT_POST.format(
+                author_name=context_data.get("author", {}).get("name", "Unknown") if isinstance(context_data.get("author"), dict) else "Unknown",
+                author_headline=context_data.get("author", {}).get("headline", "") if isinstance(context_data.get("author"), dict) else "",
+                content=context_data.get("content", "Not available")[:1500],
+                media_type=context_data.get("mediaType", "text"),
+                engagement=eng_text
+            )
+        else:
+            context_block = EXTENSION_CHAT_CONTEXT_NONE
+
+        system_prompt = EXTENSION_CHAT_SYSTEM.format(context_block=context_block)
+
+        # Build conversation for the model
+        # Use provided history or stored history
+        if history is None:
+            history = self._chat_sessions.get(session_id, [])
+
+        # Construct the full prompt with history
+        full_prompt = system_prompt + "\n\n"
+
+        # Add last 5 messages of history for continuity
+        recent_history = history[-5:] if len(history) > 5 else history
+        for msg in recent_history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "user":
+                full_prompt += f"**User:** {content}\n\n"
+            else:
+                full_prompt += f"**Assistant:** {content}\n\n"
+
+        # Add current message
+        full_prompt += f"**User:** {message}\n\n**Assistant:**"
+
+        try:
+            response = self.model.generate_content(full_prompt)
+            reply = response.text.strip()
+
+            # Update stored history
+            if session_id not in self._chat_sessions:
+                self._chat_sessions[session_id] = []
+            self._chat_sessions[session_id].append({"role": "user", "content": message})
+            self._chat_sessions[session_id].append({"role": "assistant", "content": reply})
+
+            # Keep only last 10 messages in memory
+            if len(self._chat_sessions[session_id]) > 10:
+                self._chat_sessions[session_id] = self._chat_sessions[session_id][-10:]
+
+            return {"success": True, "reply": reply}
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Chat error: {str(e)}"
+            }
+
+    def clear_chat_session(self, session_id: str) -> bool:
+        """Clear a chat session's history."""
+        if session_id in self._chat_sessions:
+            del self._chat_sessions[session_id]
+            return True
+        return False

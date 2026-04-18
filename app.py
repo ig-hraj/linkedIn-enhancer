@@ -345,11 +345,19 @@ def clear_chat():
         "session_id": "session-id-to-clear"
     }
     """
-    data = request.get_json()
-    session_id = data.get("session_id", "")
+    data = request.get_json() or {}
+    session_id = data.get("session_id", "default")
     
-    if session_id:
-        ai_service.clear_conversation(session_id)
+    if ai_service:
+        # Clear both old-style and new chatbot sessions
+        try:
+            ai_service.clear_conversation(session_id)
+        except Exception:
+            pass
+        try:
+            ai_service.clear_chat_session(session_id)
+        except Exception:
+            pass
     
     return jsonify({
         "success": True,
@@ -516,10 +524,62 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "service": "LinkedIn Enhancement Tool API",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "features": ["analyze", "rewrite", "chat", "content-analysis",
-                      "comment-suggestions", "auto-extract"]
+                      "comment-suggestions", "auto-extract", "chatbot"]
     })
+
+
+@app.route("/api/ext-chat", methods=["POST"])
+def extension_chat():
+    """
+    Context-aware chatbot endpoint for the extension.
+
+    Expects JSON body:
+    {
+        "message": "User's natural language query",
+        "context": {
+            "type": "profile" | "post" | "none",
+            "data": { ... extracted page data ... }
+        },
+        "session_id": "optional-session-id",
+        "history": [  // optional client-side history
+            {"role": "user", "content": "..."},
+            {"role": "assistant", "content": "..."}
+        ]
+    }
+
+    Returns:
+    {
+        "success": true,
+        "reply": "AI response in markdown format"
+    }
+    """
+    ai_check = _require_ai_service()
+    if ai_check:
+        return ai_check
+
+    data = request.get_json()
+    if not data or not data.get("message", "").strip():
+        return jsonify({
+            "success": False,
+            "error": "Message is required."
+        }), 400
+
+    message = data["message"].strip()
+    context = data.get("context", {"type": "none", "data": {}})
+    session_id = data.get("session_id", "default")
+    history = data.get("history")
+
+    result = ai_service.chat_with_context(
+        message=message,
+        context=context,
+        session_id=session_id,
+        history=history
+    )
+
+    return jsonify(result)
+
 
 
 @app.route("/api/analyze-content", methods=["POST"])
@@ -725,9 +785,9 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("  LinkedIn Enhancement Tool — Backend Server")
     print("=" * 60)
-    print(f"  🌐  URL: http://localhost:{Config.PORT}")
-    print(f"  📊  API: http://localhost:{Config.PORT}/api/health")
-    print(f"  🤖  AI Model: {Config.AI_MODEL}")
+    print(f"  [WEB]  URL: http://localhost:{Config.PORT}")
+    print(f"  [API]  API: http://localhost:{Config.PORT}/api/health")
+    print(f"  [AI]   AI Model: {Config.AI_MODEL}")
     print("=" * 60 + "\n")
     
     app.run(
