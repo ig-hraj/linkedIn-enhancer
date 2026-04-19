@@ -35,7 +35,7 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 # Create Flask app
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
-CORS(app, resources={r"/api/*": {"origins": "*"}})  # Allow all origins for /api/* routes (extension + web frontend)
+CORS(app)  # Allow all origins for /api/* routes (extension + web frontend)
 
 # Initialize services
 try:
