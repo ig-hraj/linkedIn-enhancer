@@ -35,11 +35,7 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 # Create Flask app
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
-CORS(app, origins=[
-    "chrome-extension://*",
-    "http://localhost:*",
-    "http://127.0.0.1:*"
-])  # Restrict CORS to extension + local dev only
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # Allow all origins for /api/* routes (extension + web frontend)
 
 # Initialize services
 try:
